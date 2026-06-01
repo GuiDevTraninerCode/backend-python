@@ -1,0 +1,53 @@
+name: Deploy Python Backend to GCP
+
+on:
+  push:
+    branches: [ "main" ] # Executa o robô sempre que você atualizar a branch main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Pega o código atual do repositório
+    - name: Checkout do código
+      uses: actions/checkout@v4
+
+    # 2. Envia todos os arquivos do projeto para a pasta correta na VM do Google Cloud
+    - name: Enviar arquivos via SSH/SCP
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.GCP_VM_IP }}
+        username: ${{ secrets.GCP_VM_USER }}
+        key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+        source: "./*"
+        target: "/home/${{ secrets.GCP_VM_USER }}/apps/python/"
+
+    # 3. Entra na VM para criar o ambiente isolado do Python (venv), instalar as dependências e iniciar/reiniciar o app
+    - name: Configurar ambiente e Iniciar no PM2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.GCP_VM_IP }}
+        username: ${{ secrets.GCP_VM_USER }}
+        key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
+        script: |
+          cd /home/${{ secrets.GCP_VM_USER }}/apps/python
+          
+          # Se o ambiente virtual (venv) não existir, cria ele
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          
+          # Ativa o ambiente virtual e instala os pacotes do projeto e o servidor gunicorn
+          source venv/bin/activate
+          pip install --upgrade pip
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+          pip install gunicorn  # Garante que o gunicorn usado no ecossistema está instalado
+          
+          # Avisa o PM2 para reiniciar o app com o código novo, ou inicia do zero se for a primeira vez
+          pm2 restart ecosystem.config.js --only backend-python || pm2 start ecosystem.config.js
+          
+          # Salva a lista do PM2 para iniciar junto com o sistema caso a VM seja reiniciada
+          pm2 save
