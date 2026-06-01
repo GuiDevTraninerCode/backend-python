@@ -4,7 +4,7 @@ from typing import List
 
 app = FastAPI(title="Minha Primeira API em Python")
 
-# Simulando um "Banco de Dados" na memória
+# Simulando um "Banco de Dados" na memóri
 banco_de_dados = [
     {"id": 1, "tarefa": "Estudar Python", "concluida": False},
     {"id": 2, "tarefa": "Criar uma API com FastAPI", "concluida": True}
