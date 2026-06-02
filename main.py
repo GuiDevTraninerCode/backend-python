@@ -18,7 +18,7 @@ class Item(BaseModel):
 # 1. Rota Inicial (Home)
 @app.get("/")
 def home():
-    return {"mensagem": "Back-end Python!"}
+    return {"mensagem": "Back-end Python 2!"}
 
 # 2. Rota para Listar todos os itens (GET)
 @app.get("/tarefas", response_model=List[dict])
